@@ -59,4 +59,78 @@ fi
 
 echo "Memory Usage    : $ram_usage%"
 
+# Disk monitoring
+
+echo -e "\n------------ DISK ----------------------"
+
+echo "Filesystem      : /"
+
+total_disk=$(df -h / | tail -n 1 | awk '{print $2}')
+
+if [[ "$total_disk" == *"G"* ]] 
+then
+	total_disk=$(df -h / | tail -n 1 | awk '{print $2}' | tr -d "G")
+	echo "Total           : $total_disk GB"
+elif [[ "$total_disk" == *"M"* ]]
+then
+	total_disk=$(df -h / | tail -n 1 | awk '{print $2}' | tr -d "M")
+	echo "Total           : $total_disk MB"
+elif [[	"$total_disk" == *"K"* ]]
+then
+	total_disk=$(df -h / | tail -n 1 | awk '{print $2}' | tr -d "K")
+	echo "Total           : $total_disk KB"
+else
+	echo "Total           : $total_disk"
+fi
+
+used_disk=$(df -h / | tail -n 1 | awk '{print $3}')
+
+if [[ "$used_disk" == *"G"* ]]
+then
+	used_disk=$(df -h / | tail -n 1 | awk '{print $3}' | tr -d "G")
+	echo "Used            : $used_disk GB"
+elif [[ "$used_disk" == *"M"* ]]
+then    
+        used_disk=$(df -h / | tail -n 1 | awk '{print $3}' | tr -d "M")
+        echo "Used            : $used_disk MB"
+elif [[ "$used_disk" == *"K"* ]]
+then
+        used_disk=$(df -h / | tail -n 1 | awk '{print $3}' | tr -d "K")
+        echo "Used            : $used_disk KB"
+else
+	echo "Used            : $used_disk "
+
+fi
+
+free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
+
+if [[ "$free_disk" == *"G"* ]]
+then
+	free_disk=$(df -h / | tail -n 1 | awk '{print $4}' | tr -d "G")
+	echo "Available       : $free_disk GB"
+elif [[ "$free_disk" == *"M"* ]]
+then    
+        free_disk=$(df -h / | tail -n 1 | awk '{print $4}' | tr -d "M")
+        echo "Available       : $free_disk MB"
+elif [[ "$free_disk" == *"K"* ]]
+then
+        free_disk=$(df -h / | tail -n 1 | awk '{print $4}' | tr -d "K")
+        echo "Available       : $free_disk KB"
+else
+	echo "Available       : $free_disk "
+fi
+
+disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
+
+echo "Usage           : $disk_usage %"
+
+if [[ "$disk_usage" -ge 90 ]]
+then
+	echo "CRITICAL: Disk usage is extremely high"
+elif [[ "$disk_usage" -ge 75 ]] 
+then
+	echo "WARNING: Disk usage is getting high"
+else
+	echo "OK: Disk usage is within safe limits"
+fi
 
