@@ -134,3 +134,16 @@ else
 	echo "OK: Disk usage is within safe limits"
 fi
 
+# 		Add top processes 
+
+echo -e "\n------------ PROCESSES -----------------"
+echo "Top Processes:"
+
+ps -eo pid,%cpu,%mem,comm --sort=-%cpu |  head -n 6 | grep -v "ps"
+
+#		Add Logged In users
+
+logged_in=$(who | awk '{print $1}')
+
+echo -e "\n------------ USERS ---------------------"
+echo -e "Logged-in users:\n$logged_in"
