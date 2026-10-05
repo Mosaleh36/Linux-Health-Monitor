@@ -35,7 +35,7 @@ then
 	total_ram=$(free -h | grep -n "Mem" | awk '{print $2}' | tr -d "Gi")
 	echo "Total RAM       : $total_ram GB"
 else
-	total_ram=$(free -h | grep -n "Mem" | awk '{print $2}' | tr -d "M")
+	total_ram=$(free -h | grep -n "Mem" | awk '{print $2}' | tr -d "Mi")
 	echo "Total RAM       : $total_ram MB"
 fi
 
@@ -44,7 +44,7 @@ then
 	used_ram=$(free -h | grep -n "Mem" | awk '{print $3}' | tr -d "Gi")
 	echo "Used RAM        : $used_ram GB"
 else
-	used_ram=$(free -h | grep -n "Mem" | awk '{print $3}' | tr -d "M" )
+	used_ram=$(free -h | grep -n "Mem" | awk '{print $3}' | tr -d "Mi" )
 	 echo "Used RAM        : $used_ram MB"
 fi
 
@@ -52,9 +52,12 @@ if [[ "$available_ram" == *"Gi"* ]]
 then
 	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}' | tr -d "Gi")
 	echo "Free RAM        : $available_ram GB"
-else
+elif [[ "$available_ram" == *"Mi"* ]]
 	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}' | tr -d "Mi")
 	echo "Free RAM        : $available_ram MB"
+else
+	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}')
+	echo "Free RAM        : $available_ram"
 fi
 
 echo "Memory Usage    : $ram_usage%"
