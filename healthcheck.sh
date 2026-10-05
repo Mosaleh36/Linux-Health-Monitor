@@ -15,8 +15,7 @@ echo "OS              : $(/usr/bin/grep 'PRETTY_NAME=' /etc/os-release | cut -d 
 
 #		CPU Usage
 
-cpu_usage=$(top -bn2 -d 0.5 | grep "Cpu(s)" | tail -n 1 | awk '{print 100 - $8}') 
-
+cpu_usage=$(awk '/cpu /{usage=($2+$4)*100/($2+$4+$5)} END {printf "%.1f", usage}' /proc/stat)
 echo -e "\n------------ CPU -----------------------"
 echo "CPU Usage       : $cpu_usage%"
 
@@ -53,6 +52,7 @@ then
 	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}' | tr -d "Gi")
 	echo "Free RAM        : $available_ram GB"
 elif [[ "$available_ram" == *"Mi"* ]]
+then
 	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}' | tr -d "Mi")
 	echo "Free RAM        : $available_ram MB"
 else
@@ -60,6 +60,12 @@ else
 	echo "Free RAM        : $available_ram"
 fi
 
+used_ram=$(free -h | grep -n "Mem" | awk '{print $3}')
+
+if [[ "$used_ram" == *"Mi"* ]]
+then
+ram_usage=$(free -h | grep -n "Mem" | awk '{printf "%d", $3/1000/$2 * 100}')
+fi
 echo "Memory Usage    : $ram_usage%"
 
 #		Disk Monitoring
@@ -68,62 +74,72 @@ echo -e "\n------------ DISK ----------------------"
 
 echo "Filesystem      : /"
 
+if grep -qi "microsoft" /proc/version; 
+then
+total_disk=$(df /mnt/c -h | tail -n 1 | awk '{print $2}')
+used_disk=$(df -h /mnt/c | tail -n 1 | awk '{print $3}')
+free_disk=$(df -h /mnt/c | tail -n 1 | awk '{print $4}')
+disk_usage=$(df -h /mnt/c | tail -n 1 | awk '{print $5}' | tr -d "%")
+
+else
 total_disk=$(df -h / | tail -n 1 | awk '{print $2}')
+used_disk=$(df -h / | tail -n 1 | awk '{print $3}')
+free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
+disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
+fi
+
 
 if [[ "$total_disk" == *"G"* ]] 
 then
-	total_disk=$(df -h / | tail -n 1 | awk '{print $2}' | tr -d "G")
-	echo "Total           : $total_disk GB"
+	clean_total=$(echo "$total_disk" | tr -d "G")
+	echo "Total           : $clean_total GB"
 elif [[ "$total_disk" == *"M"* ]]
 then
-	total_disk=$(df -h / | tail -n 1 | awk '{print $2}' | tr -d "M")
-	echo "Total           : $total_disk MB"
+	clean_total=$(echo "$total_disk" | tr -d "M")
+	echo "Total           : $clean_total MB"
 elif [[	"$total_disk" == *"K"* ]]
 then
-	total_disk=$(df -h / | tail -n 1 | awk '{print $2}' | tr -d "K")
-	echo "Total           : $total_disk KB"
+	clean_total=$(echo "$total_disk" | tr -d "K")
+	echo "Total           : $clean_total KB"
 else
 	echo "Total           : $total_disk"
 fi
 
-used_disk=$(df -h / | tail -n 1 | awk '{print $3}')
-
 if [[ "$used_disk" == *"G"* ]]
 then
-	used_disk=$(df -h / | tail -n 1 | awk '{print $3}' | tr -d "G")
-	echo "Used            : $used_disk GB"
+	clean_used=$(echo "$used_disk" | tr -d "G")
+	echo "Used            : $clean_used GB"
 elif [[ "$used_disk" == *"M"* ]]
 then    
-        used_disk=$(df -h / | tail -n 1 | awk '{print $3}' | tr -d "M")
-        echo "Used            : $used_disk MB"
+        clean_used=$(echo "$used_disk" | tr -d "M")
+        echo "Used            : $clean_used MB"
 elif [[ "$used_disk" == *"K"* ]]
 then
-        used_disk=$(df -h / | tail -n 1 | awk '{print $3}' | tr -d "K")
-        echo "Used            : $used_disk KB"
+        clean_used=$(echo "$used_disk" | tr -d "K")
+        echo "Used            : $clean_used KB"
 else
 	echo "Used            : $used_disk "
 
 fi
-
-free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
+#free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
 
 if [[ "$free_disk" == *"G"* ]]
 then
-	free_disk=$(df -h / | tail -n 1 | awk '{print $4}' | tr -d "G")
-	echo "Available       : $free_disk GB"
+	clean_free=$(echo "$free_disk" | tr -d "G")
+	echo "Available       : $clean_free GB"
 elif [[ "$free_disk" == *"M"* ]]
 then    
-        free_disk=$(df -h / | tail -n 1 | awk '{print $4}' | tr -d "M")
-        echo "Available       : $free_disk MB"
+        clean_free=$(echo "$free_disk" | tr -d "M")
+        echo "Available       : $clean_free MB"
 elif [[ "$free_disk" == *"K"* ]]
 then
-        free_disk=$(df -h / | tail -n 1 | awk '{print $4}' | tr -d "K")
-        echo "Available       : $free_disk KB"
+        clean_free=$(echo "$free_disk" | tr -d "K")
+        echo "Available       : $clean_free KB"
 else
 	echo "Available       : $free_disk "
 fi
 
-disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
+#disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
 
 echo "Usage           : $disk_usage %"
 
