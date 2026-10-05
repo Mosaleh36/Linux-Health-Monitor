@@ -5,7 +5,7 @@
 /usr/bin/echo -e "========================================\n        LINUX SERVER HEALTH REPORT"
 /usr/bin/echo -e "========================================\n"
 
-# Sysytem information
+#		System Information
 
 echo "Hostname        : $(/usr/bin/hostname)"
 echo "Date            : $(/usr/bin/date +"%Y-%m-%d %H:%M:%S")"
@@ -13,7 +13,7 @@ echo "Uptime          : $(/usr/bin/uptime -p)"
 echo "OS              : $(/usr/bin/grep 'PRETTY_NAME=' /etc/os-release | cut -d '=' -f2 | tr -d '""')"
 
 
-# Add CPU usage
+#		CPU Usage
 
 cpu_usage=$(top -bn2 -d 0.5 | grep "Cpu(s)" | tail -n 1 | awk '{print 100 - $8}') 
 
@@ -21,7 +21,7 @@ echo -e "\n------------ CPU -----------------------"
 echo "CPU Usage       : $cpu_usage%"
 
 
-# Add memory status
+#		Memory Status
 
 total_ram=$(free -h | grep -n "Mem" | awk '{print $2}')
 used_ram=$(free -h | grep -n "Mem" | awk '{print $3}')
@@ -59,7 +59,7 @@ fi
 
 echo "Memory Usage    : $ram_usage%"
 
-# Disk monitoring
+#		Disk Monitoring
 
 echo -e "\n------------ DISK ----------------------"
 
@@ -134,16 +134,51 @@ else
 	echo "OK: Disk usage is within safe limits"
 fi
 
-# 		Add top processes 
+#		Top processes 
 
 echo -e "\n------------ PROCESSES -----------------"
 echo "Top Processes:"
 
 ps -eo pid,%cpu,%mem,comm --sort=-%cpu |  head -n 6 | grep -v "ps"
 
-#		Add Logged In users
+#		Logged In users
 
 logged_in=$(who | awk '{print $1}')
 
 echo -e "\n------------ USERS ---------------------"
 echo -e "Logged-in users:\n$logged_in"
+
+
+#		Services Running
+
+echo -e "\n------------ SERVICES ------------------"
+active_services=$(service --status-all | grep '+' | awk '{print $4}')
+
+echo -e "Services are running: \n\n$active_services"
+
+#		Network
+my_IPV4_ip_address=$(hostname -I | awk '{print $1}')
+host_name=$(hostname -s)
+
+echo -e "\n------------ NETWORK -------------------"
+echo "IP Address      : $my_IPV4_ip_address"
+echo "Hostname        : $host_name"
+
+#		Overall Status
+echo -e "\n========================================"
+
+cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'.' -f1)
+ram_usage=$(free | awk '/Mem:/ {printf "%d", $3/$2 * 100}')
+disk_usage=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
+
+if [[ "$cpu_usage" -ge 90 || "$ram_usage" -ge 90 || "$disk_usage" -ge 90 ]];
+then	
+	status="CRITICAL"
+elif [[ "$cpu_usage" -ge 75 || "$ram_usage" -ge 75 || "$disk_usage" -ge 75 ]];
+then
+	status="WARNING"
+else
+	status="HEALTHY"
+fi
+echo "Status: $status"
+echo "========================================"
