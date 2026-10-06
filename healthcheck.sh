@@ -139,16 +139,21 @@ else
 	echo "Available       : $free_disk "
 fi
 
-#disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
 
 echo "Usage           : $disk_usage %"
 
 if [[ "$disk_usage" -ge 90 ]]
 then
 	echo "CRITICAL: Disk usage is extremely high"
+	(exit 90)
+	exit_code_for_disk_usage=$?
+	echo "Exit Code : $exit_code_for_disk_usage"
 elif [[ "$disk_usage" -ge 75 ]] 
 then
 	echo "WARNING: Disk usage is getting high"
+	(exit 75)
+        exit_code_for_disk_usage=$?
+        echo "Exit Code : $exit_code_for_disk_usage"
 else
 	echo "OK: Disk usage is within safe limits"
 fi
