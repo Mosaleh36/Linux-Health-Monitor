@@ -15,7 +15,7 @@ echo "OS              : $(/usr/bin/grep 'PRETTY_NAME=' /etc/os-release | cut -d 
 
 #		CPU Usage
 
-cpu_usage=$(awk '/cpu /{usage=($2+$4)*100/($2+$4+$5)} END {printf "%.1f", usage}' /proc/stat)
+cpu_usage=$(awk '/cpu /{usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' /proc/stat)
 echo -e "\n------------ CPU -----------------------"
 echo "CPU Usage       : $cpu_usage%"
 
@@ -121,7 +121,6 @@ else
 	echo "Used            : $used_disk "
 
 fi
-#free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
 
 if [[ "$free_disk" == *"G"* ]]
 then
@@ -145,15 +144,9 @@ echo "Usage           : $disk_usage %"
 if [[ "$disk_usage" -ge 90 ]]
 then
 	echo "CRITICAL: Disk usage is extremely high"
-	(exit 90)
-	exit_code_for_disk_usage=$?
-	echo "Exit Code : $exit_code_for_disk_usage"
 elif [[ "$disk_usage" -ge 75 ]] 
 then
 	echo "WARNING: Disk usage is getting high"
-	(exit 75)
-        exit_code_for_disk_usage=$?
-        echo "Exit Code : $exit_code_for_disk_usage"
 else
 	echo "OK: Disk usage is within safe limits"
 fi
@@ -191,18 +184,18 @@ echo "Hostname        : $host_name"
 #		Overall Status
 echo -e "\n========================================"
 
-cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'.' -f1)
-ram_usage=$(free | awk '/Mem:/ {printf "%d", $3/$2 * 100}')
-disk_usage=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
-
 if [[ "$cpu_usage" -ge 90 || "$ram_usage" -ge 90 || "$disk_usage" -ge 90 ]];
 then	
 	status="CRITICAL"
+	exit_code=90
 elif [[ "$cpu_usage" -ge 75 || "$ram_usage" -ge 75 || "$disk_usage" -ge 75 ]];
 then
 	status="WARNING"
+	exit_code=75
 else
 	status="HEALTHY"
+	exit_code=0
 fi
 echo "Status: $status"
 echo "========================================"
+exit "$exit_code"
