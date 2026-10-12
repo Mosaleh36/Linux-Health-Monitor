@@ -19,7 +19,16 @@ echo -e "\n------------ CPU -----------------------"
 
 get_cpu_usage()
 {
-	read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+	if grep -qi "microsoft" /proc/version;
+	then
+		win_cpu=$(powershell.exe -NoProfile -Command "(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average" 2>/dev/null | tr -d '\r' | cut -d'.' -f1)
+		if ! [[ "$win_cpu" =~ ^[0-9]+$ ]];
+		then
+			win_cpu=0
+		fi
+		echo "$win_cpu"
+	else
+	read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat 
 	total1=$((user + nice + system + idle + iowait+ irq + softirq + steal))
 	idle1=$(( idle + iowait))
 	
@@ -31,7 +40,7 @@ get_cpu_usage()
 
 	total_diff=$((total2 - total1))
 	idle_diff=$((idle2 - idle1))
-
+	
 	if (( total_diff <= 0 ))
 	then
 		echo "N/A"
@@ -40,6 +49,7 @@ get_cpu_usage()
 
 	cpu_usage=$(( (total_diff - idle_diff) * 100 / total_diff ))
 	echo "$cpu_usage"
+	fi
 }
 
 cpu_usage=$(get_cpu_usage)
@@ -68,6 +78,7 @@ then
 	# Query the Windows host environment for the user profile path (e.g., C:\Users\...)
    	win_profile=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
    	wsl_drive="${win_profile:0:1}"
+	wsl_drive="${wsl_drive,,}"
    	[ -z "$wsl_drive" ] && wsl_drive="c" # Fallback to C if unretrievable
 
 	echo "Filesystem      : / (WSL $wsl_drive:)"
@@ -92,10 +103,8 @@ size_unit() {
 		*K) echo "${val%K} KB" ;;
 		*T) echo "${val%T} TB" ;;
 		*) echo "$val" ;;
-	esac
-	
+	esac	
 }	
-
 
 echo "Total           : $(size_unit "$total_disk")"
 echo "Used            : $(size_unit "$used_disk")"
@@ -126,11 +135,10 @@ logged_in=$(who | awk '{print $1}')
 echo -e "\n------------ USERS ---------------------"
 echo -e "Logged-in users:\n$logged_in"
 
-
 #		Services Running
 
 echo -e "\n------------ SERVICES ------------------"
-active_services=$(service --status-all | grep '+' | awk '{print $4}')
+active_services=$(service --status-all 2>/dev/null | grep '+' | awk '{print $4}')
 
 echo -e "Services are running: \n\n$active_services"
 
