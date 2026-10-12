@@ -15,130 +15,91 @@ echo "OS              : $(/usr/bin/grep 'PRETTY_NAME=' /etc/os-release | cut -d 
 
 #		CPU Usage
 
-cpu_usage=$(awk '/cpu /{usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' /proc/stat)
 echo -e "\n------------ CPU -----------------------"
-echo "CPU Usage       : $cpu_usage%"
 
+get_cpu_usage()
+{
+	read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+	total1=$((user + nice + system + idle + iowait+ irq + softirq + steal))
+	idle1=$(( idle + iowait))
+	
+	sleep 1
+
+	read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+        total2=$((user + nice + system + idle + iowait+ irq + softirq + steal))
+        idle2=$(( idle + iowait))
+
+	total_diff=$((total2 - total1))
+	idle_diff=$((idle2 - idle1))
+
+	if (( total_diff <= 0 ))
+	then
+		echo "N/A"
+		return 1
+	fi
+
+	cpu_usage=$(( (total_diff - idle_diff) * 100 / total_diff ))
+	echo "$cpu_usage"
+}
+
+cpu_usage=$(get_cpu_usage)
+
+echo "CPU Usage       : $cpu_usage%"
 
 #		Memory Status
 
-total_ram=$(free -h | grep -n "Mem" | awk '{print $2}')
-used_ram=$(free -h | grep -n "Mem" | awk '{print $3}')
-available_ram=$(free -h | grep -n "Mem" | awk '{print $7}')
-ram_usage=$(free -h | grep -n "Mem" | awk '{printf "%d", $3/$2 * 100}')
+total_ram=$(free | grep -n "Mem" | awk '{printf "%.2f", $2 / 1000000}')
+used_ram=$(free | grep -n "Mem" | awk '{printf "%.2f", $3 / 1000000}')
+available_ram=$(free | grep -n "Mem" | awk '{printf "%.2f", $7 / 1000000 }')
+ram_usage=$(free | grep -n "Mem" | awk '{printf "%d", ($3/$2) * 100}')
+	echo -e "\n------------ MEMORY --------------------"
 
-echo -e "\n------------ MEMORY --------------------"
-
-if [[ "$total_ram" == *"Gi"* ]]
-then
-	total_ram=$(free -h | grep -n "Mem" | awk '{print $2}' | tr -d "Gi")
 	echo "Total RAM       : $total_ram GB"
-else
-	total_ram=$(free -h | grep -n "Mem" | awk '{print $2}' | tr -d "Mi")
-	echo "Total RAM       : $total_ram MB"
-fi
-
-if [[ "$used_ram" == *"Gi"* ]]
-then
-	used_ram=$(free -h | grep -n "Mem" | awk '{print $3}' | tr -d "Gi")
 	echo "Used RAM        : $used_ram GB"
-else
-	used_ram=$(free -h | grep -n "Mem" | awk '{print $3}' | tr -d "Mi" )
-	 echo "Used RAM        : $used_ram MB"
-fi
-
-if [[ "$available_ram" == *"Gi"* ]] 
-then
-	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}' | tr -d "Gi")
 	echo "Free RAM        : $available_ram GB"
-elif [[ "$available_ram" == *"Mi"* ]]
-then
-	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}' | tr -d "Mi")
-	echo "Free RAM        : $available_ram MB"
-else
-	available_ram=$(free -h | grep -n "Mem" | awk '{print $7}')
-	echo "Free RAM        : $available_ram"
-fi
-
-used_ram=$(free -h | grep -n "Mem" | awk '{print $3}')
-
-if [[ "$used_ram" == *"Mi"* ]]
-then
-ram_usage=$(free -h | grep -n "Mem" | awk '{printf "%d", $3/1000/$2 * 100}')
-fi
-echo "Memory Usage    : $ram_usage%"
+	echo "Memory Usage    : $ram_usage%"
 
 #		Disk Monitoring
 
 echo -e "\n------------ DISK ----------------------"
 
-echo "Filesystem      : /"
-
 if grep -qi "microsoft" /proc/version; 
 then
-total_disk=$(df /mnt/c -h | tail -n 1 | awk '{print $2}')
-used_disk=$(df -h /mnt/c | tail -n 1 | awk '{print $3}')
-free_disk=$(df -h /mnt/c | tail -n 1 | awk '{print $4}')
-disk_usage=$(df -h /mnt/c | tail -n 1 | awk '{print $5}' | tr -d "%")
+	# Query the Windows host environment for the user profile path (e.g., C:\Users\...)
+   	win_profile=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+   	wsl_drive="${win_profile:0:1}"
+   	[ -z "$wsl_drive" ] && wsl_drive="c" # Fallback to C if unretrievable
+
+	echo "Filesystem      : / (WSL $wsl_drive:)"
+	total_disk=$(df /mnt/$wsl_drive -h | tail -n 1 | awk '{print $2}')
+	used_disk=$(df -h /mnt/$wsl_drive | tail -n 1 | awk '{print $3}')
+	free_disk=$(df -h /mnt/$wsl_drive | tail -n 1 | awk '{print $4}')
+	disk_usage=$(df -h /mnt/$wsl_drive | tail -n 1 | awk '{print $5}' | tr -d "%")
 
 else
-total_disk=$(df -h / | tail -n 1 | awk '{print $2}')
-used_disk=$(df -h / | tail -n 1 | awk '{print $3}')
-free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
-disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
+	echo "Filesystem      : / "
+	total_disk=$(df -h / | tail -n 1 | awk '{print $2}')
+	used_disk=$(df -h / | tail -n 1 | awk '{print $3}')
+	free_disk=$(df -h / | tail -n 1 | awk '{print $4}')
+	disk_usage=$(df -h / | tail -n 1 | awk '{print $5}' | tr -d "%")
 fi
 
-
-if [[ "$total_disk" == *"G"* ]] 
-then
-	clean_total=$(echo "$total_disk" | tr -d "G")
-	echo "Total           : $clean_total GB"
-elif [[ "$total_disk" == *"M"* ]]
-then
-	clean_total=$(echo "$total_disk" | tr -d "M")
-	echo "Total           : $clean_total MB"
-elif [[	"$total_disk" == *"K"* ]]
-then
-	clean_total=$(echo "$total_disk" | tr -d "K")
-	echo "Total           : $clean_total KB"
-else
-	echo "Total           : $total_disk"
-fi
-
-if [[ "$used_disk" == *"G"* ]]
-then
-	clean_used=$(echo "$used_disk" | tr -d "G")
-	echo "Used            : $clean_used GB"
-elif [[ "$used_disk" == *"M"* ]]
-then    
-        clean_used=$(echo "$used_disk" | tr -d "M")
-        echo "Used            : $clean_used MB"
-elif [[ "$used_disk" == *"K"* ]]
-then
-        clean_used=$(echo "$used_disk" | tr -d "K")
-        echo "Used            : $clean_used KB"
-else
-	echo "Used            : $used_disk "
-
-fi
-
-if [[ "$free_disk" == *"G"* ]]
-then
-	clean_free=$(echo "$free_disk" | tr -d "G")
-	echo "Available       : $clean_free GB"
-elif [[ "$free_disk" == *"M"* ]]
-then    
-        clean_free=$(echo "$free_disk" | tr -d "M")
-        echo "Available       : $clean_free MB"
-elif [[ "$free_disk" == *"K"* ]]
-then
-        clean_free=$(echo "$free_disk" | tr -d "K")
-        echo "Available       : $clean_free KB"
-else
-	echo "Available       : $free_disk "
-fi
+size_unit() {
+	local val="$1"
+	case "$val" in 
+		*G) echo "${val%G} GB" ;;
+		*M) echo "${val%M} MB" ;;
+		*K) echo "${val%K} KB" ;;
+		*T) echo "${val%T} TB" ;;
+		*) echo "$val" ;;
+	esac
+	
+}	
 
 
+echo "Total           : $(size_unit "$total_disk")"
+echo "Used            : $(size_unit "$used_disk")"
+echo "Available       : $(size_unit "$free_disk")"
 echo "Usage           : $disk_usage %"
 
 if [[ "$disk_usage" -ge 90 ]]
