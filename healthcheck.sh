@@ -24,9 +24,11 @@ get_cpu_usage()
 		win_cpu=$(powershell.exe -NoProfile -Command "(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average" 2>/dev/null | tr -d '\r' | cut -d'.' -f1)
 		if ! [[ "$win_cpu" =~ ^[0-9]+$ ]];
 		then
-			win_cpu=0
+			echo "Failed to read CPU usage " >&2
+			return 1
 		fi
 		echo "$win_cpu"
+		return 0
 	else
 	read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat 
 	total1=$((user + nice + system + idle + iowait+ irq + softirq + steal))
@@ -43,7 +45,7 @@ get_cpu_usage()
 	
 	if (( total_diff <= 0 ))
 	then
-		echo "N/A"
+		echo "Failed to read CPU usage"
 		return 1
 	fi
 
@@ -52,9 +54,18 @@ get_cpu_usage()
 	fi
 }
 
-cpu_usage=$(get_cpu_usage)
+cpu_usage=""
+cpu_read_failed=0
+if cpu_usage=$(get_cpu_usage) && [[ "$cpu_usage" =~ ^[0-9]+$ ]];
+then	
+	echo "CPU Usage       : $cpu_usage%"
+else
+	cpu_usage=""
+	cpu_read_failed=1
 
-echo "CPU Usage       : $cpu_usage%"
+	echo "CPU Usage       : N/A" 
+	echo "WARNING: CPU usage could not be measured" >&2
+fi
 
 #		Memory Status
 
@@ -82,10 +93,10 @@ then
    	[ -z "$wsl_drive" ] && wsl_drive="c" # Fallback to C if unretrievable
 
 	echo "Filesystem      : / (WSL $wsl_drive:)"
-	total_disk=$(df /mnt/$wsl_drive -h | tail -n 1 | awk '{print $2}')
-	used_disk=$(df -h /mnt/$wsl_drive | tail -n 1 | awk '{print $3}')
-	free_disk=$(df -h /mnt/$wsl_drive | tail -n 1 | awk '{print $4}')
-	disk_usage=$(df -h /mnt/$wsl_drive | tail -n 1 | awk '{print $5}' | tr -d "%")
+	total_disk=$(df /mnt/"$wsl_drive" -h | tail -n 1 | awk '{print $2}')
+	used_disk=$(df -h /mnt/"$wsl_drive" | tail -n 1 | awk '{print $3}')
+	free_disk=$(df -h /mnt/"$wsl_drive" | tail -n 1 | awk '{print $4}')
+	disk_usage=$(df -h /mnt/"$wsl_drive" | tail -n 1 | awk '{print $5}' | tr -d "%")
 
 else
 	echo "Filesystem      : / "
@@ -153,6 +164,8 @@ echo "Hostname        : $host_name"
 #		Overall Status
 echo -e "\n========================================"
 
+if [[ "$cpu_read_failed" -eq 0 ]];
+then
 if [[ "$cpu_usage" -ge 90 || "$ram_usage" -ge 90 || "$disk_usage" -ge 90 ]];
 then	
 	status="CRITICAL"
@@ -164,6 +177,21 @@ then
 else
 	status="HEALTHY"
 	exit_code=0
+fi
+
+else
+if [[ "$ram_usage" -ge 90 || "$disk_usage" -ge 90 ]];
+then	
+	status="CRITICAL"
+	exit_code=90
+elif [[ "$ram_usage" -ge 75 || "$disk_usage" -ge 75 ]];
+then
+	status="WARNING"
+	exit_code=75
+else
+	status="HEALTHY"
+	exit_code=0
+fi
 fi
 echo "Status: $status"
 echo "========================================"
