@@ -25,11 +25,59 @@ A Bash-based system monitoring tool for **Ubuntu Linux and Ubuntu on WSL**. It d
 Clone the repository:
 
 ```bash
-git clone [https://github.com/Mosaleh36/Linux-Health-Monitor.git](https://github.com/Mosaleh36/Linux-Health-Monitor.git)
-Navigate to the project directory:Bashcd Linux-Health-Monitor
-Run the script:Bashbash healthcheck.sh
-Alert ThresholdsResource UsageStatusBelow 75%Healthy75% to below 90%Warning90% or aboveCriticalThese thresholds are used to identify elevated resource usage. Overall health status also depends on whether the required metrics can be collected successfully.Example OutputExample output from the Linux Health Monitor script.Project StructurePlaintextLinux-Health-Monitor/
+git clone https://github.com/Mosaleh36/Linux-Health-Monitor.git
+```
+
+Navigate to the project directory:
+
+```bash
+cd Linux-Health-Monitor
+```
+
+Run the script:
+
+```bash
+bash healthcheck.sh
+```
+
+## Alert Thresholds
+
+| Resource Usage | Status |
+|----------------|--------|
+| Below 75% | Healthy |
+| 75% to below 90% | Warning |
+| 90% or above | Critical |
+
+These thresholds are used to identify elevated resource usage. Overall health status also depends on whether the required metrics can be collected successfully.
+
+## Example Output
+
+<img src="Linux-health-screenshot.jpeg" alt="Linux Health Monitor Output" width="400">
+
+*Example output from the Linux Health Monitor script.*
+
+## Project Structure
+
+```text
+Linux-Health-Monitor/
 ├── healthcheck.sh
 ├── README.md
 └── Linux-health-screenshot.jpeg
-LimitationsThe script relies on Linux system files and command-line utilities.Some service information may vary between Ubuntu installations and WSL environments.Resource measurements represent a snapshot of system activity and may change over time.Future ImprovementsAdd configurable alert thresholds.Improve error handling and metric validation.Add logging and historical reports.Extend monitoring with additional system metrics.PurposeThis project was built to practice Bash scripting, Linux system administration, process monitoring, and troubleshooting while developing practical DevOps skills.
+```
+
+## Limitations
+
+* The script relies on Linux system files and command-line utilities.
+* Some service information may vary between Ubuntu installations and WSL environments.
+* Resource measurements represent a snapshot of system activity and may change over time.
+
+## Future Improvements
+
+* Add configurable alert thresholds.
+* Improve error handling and metric validation.
+* Add logging and historical reports.
+* Extend monitoring with additional system metrics.
+
+## Purpose
+
+This project was built to practice Bash scripting, Linux system administration, process monitoring, and troubleshooting while developing practical DevOps skills.
